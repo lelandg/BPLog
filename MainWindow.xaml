@@ -1,0 +1,52 @@
+﻿<Window x:Class="BloodPressureApp.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Blood Pressure App" Height="800" Width="1000">
+    <Grid>
+        <!-- Define Rows for Layout -->
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/> <!-- Row for User Info -->
+            <RowDefinition Height="Auto"/> <!-- Row for Input Section -->
+            <RowDefinition Height="*"/>   <!-- Row for Data Grid -->
+            <RowDefinition Height="Auto"/> <!-- Row for Export Buttons -->
+        </Grid.RowDefinitions>
+
+        <!-- User Info -->
+        <StackPanel Orientation="Horizontal" Margin="10" Grid.Row="0">
+            <TextBlock Text="Name:" VerticalAlignment="Center" Margin="5"/>
+            <TextBox Name="UserNameInput" Width="150"/>
+            <TextBlock Text="Birthdate:" VerticalAlignment="Center" Margin="5"/>
+            <DatePicker Name="BirthDatePicker" Width="120"/>
+        </StackPanel>
+
+        <!-- Input Section -->
+        <StackPanel Margin="10" VerticalAlignment="Top" Grid.Row="1">
+            <TextBlock Text="Enter Blood Pressure Reading:" FontWeight="Bold" Margin="5"/>
+            <StackPanel Orientation="Horizontal" Margin="5">
+                <TextBlock Text="Systolic:" VerticalAlignment="Center"/>
+                <TextBox Name="SystolicInput" Width="100" Margin="5"/>
+                <TextBlock Text="Diastolic:" VerticalAlignment="Center"/>
+                <TextBox Name="DiastolicInput" Width="100" Margin="5"/>
+                <TextBlock Text="Pulse Rate:" VerticalAlignment="Center"/>
+                <TextBox Name="PulseInput" Width="100" Margin="5"/>
+            </StackPanel>
+            <StackPanel Orientation="Horizontal" Margin="5">
+                <TextBlock Text="Reading Time:" VerticalAlignment="Center"/>
+                <DatePicker Name="ReadingDatePicker" Width="120" Margin="5"/>
+                <TextBlock Text="Time:" VerticalAlignment="Center"/>
+                <TextBox Name="ReadingTimeInput" Width="120" Margin="5"/>
+                <CheckBox Name="StandingCheckbox" Content="Standing" Margin="5"/>
+            </StackPanel>
+            <Button Content="Add Record" Name="AddRecordButton" Width="150" Height="30" Margin="5" Click="AddRecordButton_Click"/>
+        </StackPanel>
+
+        <!-- Data Grid -->
+        <DataGrid Name="ReadingsGrid" AutoGenerateColumns="True" Margin="10" 
+                  IsReadOnly="True" Grid.Row="2" MouseDoubleClick="ReadingsGrid_MouseDoubleClick"/>
+        <!-- Export Options -->
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="10" Grid.Row="3">
+            <Button Content="Export to Text" Name="ExportTextButton" Width="150" Height="30" Margin="5" Click="ExportTextButton_Click"/>
+            <Button Content="Export to HTML" Name="ExportHtmlButton" Width="150" Height="30" Margin="5" Click="ExportHtmlButton_Click"/>
+        </StackPanel>
+    </Grid>
+</Window>
