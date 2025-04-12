@@ -107,7 +107,7 @@
                     <DataGridTextColumn.ElementStyle>
                         <Style TargetType="TextBlock">
                             <Setter Property="HorizontalAlignment" Value="Center"></Setter>
-                            <Setter Property="Padding" Value="5, 1"></Setter>
+                            <Setter Property="Padding" Value="0, 1"></Setter>
                         </Style>
                     </DataGridTextColumn.ElementStyle>
                 </DataGridTextColumn>
@@ -116,7 +116,7 @@
                     <DataGridTextColumn.ElementStyle>
                         <Style TargetType="TextBlock">
                             <Setter Property="HorizontalAlignment" Value="Center"></Setter>
-                            <Setter Property="Padding" Value="5, 1"></Setter>
+                            <Setter Property="Padding" Value="0, 1"></Setter>
                         </Style>
                     </DataGridTextColumn.ElementStyle>
                 </DataGridTextColumn>
@@ -125,7 +125,7 @@
                     <DataGridTextColumn.ElementStyle>
                         <Style TargetType="TextBlock">
                             <Setter Property="HorizontalAlignment" Value="Center"></Setter>
-                            <Setter Property="Padding" Value="5, 1"></Setter>
+                            <Setter Property="Padding" Value="0, 1"></Setter>
                         </Style>
                     </DataGridTextColumn.ElementStyle>
                 </DataGridTextColumn>
@@ -134,7 +134,7 @@
                     <DataGridTextColumn.ElementStyle>
                         <Style TargetType="TextBlock">
                             <Setter Property="HorizontalAlignment" Value="Center"></Setter>
-                            <Setter Property="Padding" Value="5, 1"></Setter>
+                            <Setter Property="Padding" Value="0, 1"></Setter>
                         </Style>
                     </DataGridTextColumn.ElementStyle>
                 </DataGridTextColumn>
