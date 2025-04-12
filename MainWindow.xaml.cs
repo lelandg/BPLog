@@ -69,8 +69,6 @@ namespace BloodPressureApp
     public class MainViewModel : INotifyPropertyChanged
     {
         public event PropertyChangedEventHandler? PropertyChanged;
-        // Add this property for the "Add Record" command
-        // public ICommand AddRecordCommand { get; }
         private ObservableCollection<HealthRecord> _readings;
         public ObservableCollection<HealthRecord> Readings
         {
@@ -103,142 +101,6 @@ namespace BloodPressureApp
             _readings = new ObservableCollection<HealthRecord>();
             // AddRecordCommand = new RelayCommand(AddRecordButton_Click);
         }
-        
-        // private string _connectionString;
-        //
-        // // This method will execute on "Add Record" button click
-        // private void AddRecordButton_Click()
-        // {
-        //     // Logic to handle adding a record
-        //     // This may include validation and adding it to a collection such as 'Readings'
-        //     // Example:
-        //     var date = ReadingDate ??= DateTime.Now;
-        //     if (Systolic.HasValue && Diastolic.HasValue && Pulse.HasValue && ReadingDate.HasValue)
-        //     {
-        //         // Add to collected Readings (assuming Readings is an ObservableCollection)
-        //         Readings.Add(new HealthRecord()
-        //         {
-        //             Systolic = Systolic.Value,
-        //             Diastolic = Diastolic.Value,
-        //             Pulse = Pulse.Value,
-        //             ReadingDate = ReadingDate.Value,
-        //             ReadingTime = ReadingTime,
-        //             Standing = Standing
-        //         });
-        //
-        //     if (string.IsNullOrWhiteSpace(UserName) || BirthDate == null)
-        //     {
-        //         MessageBox.Show("Please enter user name and birthdate.");
-        //         return;
-        //     }
-        //
-        //     if (string.IsNullOrWhiteSpace(Systolic.ToString()) || 
-        //         string.IsNullOrWhiteSpace(Diastolic.ToString()) ||
-        //         string.IsNullOrWhiteSpace(Pulse.ToString()))
-        //     {
-        //         MessageBox.Show("Please enter valid blood pressure readings.");
-        //         return;
-        //     }
-        //
-        //     string documentsPath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments) + "\\BPReadings";
-        //     _connectionString = "Data Source=" + Path.Combine(documentsPath, "bloodpressure.db");
-        //
-        //     using var connection = new SqliteConnection(_connectionString);
-        //     connection.Open();
-        //
-        //     // Check if user exists
-        //     string selectUserQuery = "SELECT Id FROM Users WHERE Name = @name AND Birthdate = @birthdate";
-        //     using var selectUserCmd = new SqliteCommand(selectUserQuery, connection);
-        //     selectUserCmd.Parameters.AddWithValue("@name", UserName);
-        //     // selectUserCmd.Parameters.AddWithValue("@birthdate", BirthDate.SelectedDate.Value.ToString("yyyy-MM-dd"));
-        //     selectUserCmd.Parameters.AddWithValue("@birthdate", BirthDate.Value.ToString("yyyy-MM-dd"));
-        //     object result = selectUserCmd.ExecuteScalar();
-        //
-        //     int userId;
-        //     if (result == null)
-        //     {
-        //         // Insert user
-        //         string insertUserQuery = "INSERT INTO Users (Name, Birthdate) VALUES (@name, @birthdate)";
-        //         using var insertUserCmd = new SqliteCommand(insertUserQuery, connection);
-        //         insertUserCmd.Parameters.AddWithValue("@name", UserName);
-        //         insertUserCmd.Parameters.AddWithValue("@birthdate", BirthDate.Value.ToString("yyyy-MM-dd"));
-        //         insertUserCmd.ExecuteNonQuery();
-        //
-        //         userId = Convert.ToInt32(new SqliteCommand("SELECT last_insert_rowid();", connection).ExecuteScalar());
-        //     }
-        //     else
-        //     {
-        //         userId = Convert.ToInt32(result);
-        //     }
-        //
-        //     // Add reading
-        //     string position = Standing == true ? "Standing" : "Sitting";
-        //     string insertReadingQuery = @"INSERT INTO Readings (UserId, Systolic, Diastolic, Pulse, ReadingTime, Position) 
-        //                                  VALUES (@userId, @systolic, @diastolic, @pulse, @readingTime, @position)";
-        //     using var insertReadingCmd = new SqliteCommand(insertReadingQuery, connection);
-        //     insertReadingCmd.Parameters.AddWithValue("@userId", userId);
-        //     insertReadingCmd.Parameters.AddWithValue("@systolic", Systolic);
-        //     insertReadingCmd.Parameters.AddWithValue("@diastolic", Diastolic);
-        //     insertReadingCmd.Parameters.AddWithValue("@pulse", Pulse);
-        //     var timeString = ReadingTime?.ToString() ?? "00:00:00";
-        //     date = date.Date.Add(TimeSpan.Parse(timeString));
-        //     insertReadingCmd.Parameters.AddWithValue("@readingTime", date);
-        //     insertReadingCmd.Parameters.AddWithValue("@position", position);
-        //     insertReadingCmd.ExecuteNonQuery();
-        //     
-        //     connection.Close();
-        //     // Reload readings
-        //     LoadReadings();
-        //
-        //     // // Clear input fields or perform other UI updates as needed
-        //     // Systolic = null;
-        //     // Diastolic = null;
-        //     // Pulse = null;
-        //     // ReadingDate = null;
-        //     // ReadingTime = null;
-        //     }
-        // }
-        //
-        // private void LoadReadings()
-        // {
-        //     string documentsPath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments) + "\\BPReadings";
-        //     _connectionString = "Data Source=" + Path.Combine(documentsPath, "bloodpressure.db");
-        //     using var connection = new SqliteConnection(_connectionString);
-        //
-        //     connection.Open();
-        //
-        //     string query = @"SELECT u.Name, u.Birthdate, r.Systolic, r.Diastolic, r.Pulse, r.ReadingTime, r.Position
-        //                      FROM Readings r
-        //                      JOIN Users u ON r.UserId = u.Id";
-        //
-        //     using var cmd = new SqliteCommand(query, connection);
-        //     using var reader = cmd.ExecuteReader();
-        //
-        //     var readings = new List<dynamic>();
-        //     while (reader.Read())
-        //     {
-        //         readings.Add(new HealthRecord()
-        //         {
-        //             Name = reader.GetString(0),
-        //             BirthDate = DateTime.Parse(reader.GetString(1)),
-        //             Systolic = reader.GetInt32(2),
-        //             Diastolic = reader.GetInt32(3),
-        //             Pulse = reader.GetInt32(4),
-        //             ReadingDate = DateTime.Parse(reader.GetString(5)),
-        //             ReadingTime = DateTime.Parse(reader.GetString(5)).TimeOfDay,
-        //             Standing = reader.GetString(6) == "Standing"
-        //         });
-        //     }
-        //
-        //     Readings.Clear();
-        //     foreach (var reading in readings)
-        //     {
-        //         Readings.Add(reading);
-        //         Console.WriteLine(reading);
-        //     }
-        //     
-        //     OnPropertyChanged(nameof(Readings));
-        // }
         
 
         // Properties
@@ -505,7 +367,8 @@ namespace BloodPressureApp
 
             string query = @"SELECT u.Name, u.Birthdate, r.Systolic, r.Diastolic, r.Pulse, r.ReadingTime, r.Position
                              FROM Readings r
-                             JOIN Users u ON r.UserId = u.Id";
+                             JOIN Users u ON r.UserId = u.Id
+                             ORDER BY r.ReadingTime ASC";
 
             using var cmd = new SqliteCommand(query, connection);
             using var reader = cmd.ExecuteReader();
@@ -544,7 +407,7 @@ namespace BloodPressureApp
 
             using var writer = new StreamWriter(fullPath);
             if ((ReadingsGrid.ItemsSource as IList<dynamic>)?[0] is HealthRecord hr) 
-                writer.WriteLine($"{hr.Name} - {hr.BirthDate:yyyy-MM-dd}");
+                writer.WriteLine($"Name: {hr.Name}  Birth Date: {hr.BirthDate:yyyy-MM-dd}");
             foreach (var item in ReadingsGrid.ItemsSource)
             {
                 writer.WriteLine(item.ToString());
@@ -556,14 +419,33 @@ namespace BloodPressureApp
 
         private void ExportHtmlButton_Click(object sender, RoutedEventArgs e)
         {
-            using var writer = new StreamWriter("readings.html");
-            writer.WriteLine("<html><body><table border='1'>");
-            writer.WriteLine("<tr><th>Name</th><th>Birthdate</th><th>Systolic</th><th>Diastolic</th><th>Pulse</th><th>Time</th><th>Position</th></tr>");
-            foreach (var item in ReadingsGrid.ItemsSource)
+            string fileName = $"{DateTime.Now:yyyy-MM-dd}_bp_readings.html";
+            string folderPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "BPReadings"); // Example folder
+            string fullPath = Path.Combine(folderPath, fileName);
+
+            using var writer = new StreamWriter(fullPath);
+            writer.WriteLine("<html><body><table border='2px' style='border-collapse:collapse; padding:5px;'>");
+            writer.WriteLine("<style>th, td { padding: 5px; text-align: center}</style>"); // Added CSS for cell padding
+
+            if ((ReadingsGrid.ItemsSource as IList<dynamic>)?[0] is HealthRecord hr) 
+                writer.WriteLine($"<h1>{hr.Name} {hr.BirthDate:MM-dd-yyyy}</h1>");
+    
+            writer.WriteLine("<tr><th>Date</th><th>Time</th><th>Sys/Dia</th><th>Pulse</th><th>Standing</th></tr>");
+
+            foreach (HealthRecord item in ReadingsGrid.ItemsSource)
             {
-                writer.WriteLine($"<tr><td>{item}</td></tr>");
+                writer.WriteLine($"<tr><td>{item.ReadingDate:MM-dd-yyyy}</td>" +
+                                 $"<td>{item.ReadingTime.ToString()?[..5]}</td>" +
+                                 $"<td>{item.Systolic} / {item.Diastolic}</td>" +
+                                 $"<td>{item.Pulse}</td>" +
+                                 $"<td>{(item.Standing == true ? "X" : "")}</td></tr>");
             }
+
             writer.WriteLine("</table></body></html>");
+
+            Clipboard.SetText(fullPath);
+            MessageBox.Show($"Data exported and path copied to clipboard:\n{fullPath}", 
+                "Export Successful", MessageBoxButton.OK, MessageBoxImage.Information);
         }
         
         // Event handler for double-clicking on a DataGrid row

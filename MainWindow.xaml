@@ -48,19 +48,89 @@
                 
                 <Button Content="_Now" Width="60" Margin="5" Click="SetCurrentDateTime_Click"/>
             </StackPanel>
-            <Button Content="Add Record" Width="150" Height="30" Margin="5" Click="AddRecordButton_Click"/>
+            <Button Content="_Add Record" Width="150" Height="30" Margin="5" Click="AddRecordButton_Click"/>
         </StackPanel>
       
         <!-- Data Grid -->
-        <DataGrid Name="ReadingsGrid" AutoGenerateColumns="True" Margin="10" IsReadOnly="True" Grid.Row="2"
+        <DataGrid Name="ReadingsGrid" AutoGenerateColumns="False" Margin="10" IsReadOnly="True" Grid.Row="2"
                   ItemsSource="{Binding Readings}" SelectedItem="{Binding SelectedReading}" 
-                  MouseDoubleClick="ReadingsGrid_MouseDoubleClick"/>
+                  MouseDoubleClick="ReadingsGrid_MouseDoubleClick">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Name"
+                                    Binding="{Binding Name}">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="HorizontalAlignment" Value="Center"></Setter>
+                        </Style>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+                    
+                <DataGridTextColumn Header="Birthdate" 
+                                    Binding="{Binding BirthDate, StringFormat=d}">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="HorizontalAlignment" Value="Center"></Setter>
+                        </Style>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+                    
+                <DataGridTextColumn Header="Date" 
+                                    Binding="{Binding ReadingDate, StringFormat=d}">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="HorizontalAlignment" Value="Center"></Setter>
+                        </Style>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+                <DataGridTextColumn Header="Time" 
+                                    Binding="{Binding ReadingDate, StringFormat=t}">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="HorizontalAlignment" Value="Center"></Setter>
+                        </Style>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+                <DataGridTextColumn Header="Systolic" 
+                                    Binding="{Binding Systolic}">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="HorizontalAlignment" Value="Center"></Setter>
+                        </Style>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+                <DataGridTextColumn Header="Diastolic" 
+                                    Binding="{Binding Diastolic}">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="HorizontalAlignment" Value="Center"></Setter>
+                        </Style>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+                <DataGridTextColumn Header="Pulse" 
+                                    Binding="{Binding Pulse}">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="HorizontalAlignment" Value="Center"></Setter>
+                        </Style>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+                <DataGridTextColumn Header="Standing" 
+                                    Binding="{Binding Standing}">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="HorizontalAlignment" Value="Center"></Setter>
+                        </Style>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+                
+            </DataGrid.Columns>
+        </DataGrid>
 
         
         <!-- Export Options -->
         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="10" Grid.Row="3">
-            <Button Content="Export to Text" Name="ExportTextButton" Width="150" Height="30" Margin="5" Click="ExportTextButton_Click"/>
-            <Button Content="Export to HTML" Name="ExportHtmlButton" Width="150" Height="30" Margin="5" Click="ExportHtmlButton_Click"/>
+            <Button Content="Export to _Text" Name="ExportTextButton" Width="150" Height="30" Margin="5" Click="ExportTextButton_Click"/>
+            <Button Content="Export to _HTML" Name="ExportHtmlButton" Width="150" Height="30" Margin="5" Click="ExportHtmlButton_Click"/>
         </StackPanel>
     </Grid>
 </Window>

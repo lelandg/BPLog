@@ -19,11 +19,11 @@ public class HealthRecord
     
     public override string ToString()
     {
-        return $"{ReadingDate:yyyy-MM-dd} {ReadingTime.ToString()} " +
+        return $"{ReadingDate:MM-dd-yyyy} {ReadingTime.ToString().Substring(0, 5)} " +
                // $"Name = {Name}, " +
                // $"BirthDate = {BirthDate:yyyy-MM-dd}, " +
                $"{Systolic}/{Diastolic} " +
                $"Pulse: {Pulse} " +
-               $"{(Standing ? "Standing" : "Sitting")}";
+               $"{(Standing ? "Standing" : "")}";
     }    
 }
