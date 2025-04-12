@@ -6,7 +6,7 @@ public class HealthRecord
     public int Diastolic { get; set; }
     public int Pulse { get; set; }
     public DateTime ReadingDate { get; set; }
-    public TimeSpan ReadingTime { get; set; }
+    public TimeSpan? ReadingTime { get; set; }
     public bool Standing { get; set; }
     
     protected internal string Header
@@ -19,11 +19,11 @@ public class HealthRecord
     
     public override string ToString()
     {
-        return $"{ReadingDate:yyyy-MM-dd} {ReadingTime.ToString().Substring(0, 5)} " +
+        return $"{ReadingDate:yyyy-MM-dd} {ReadingTime.ToString()} " +
                // $"Name = {Name}, " +
                // $"BirthDate = {BirthDate:yyyy-MM-dd}, " +
                $"{Systolic}/{Diastolic} " +
-               $"Pulse: {Pulse}" +
+               $"Pulse: {Pulse} " +
                $"{(Standing ? "Standing" : "Sitting")}";
     }    
 }

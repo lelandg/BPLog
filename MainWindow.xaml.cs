@@ -1,6 +1,7 @@
 ﻿using Microsoft.Data.Sqlite;
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.IO;
 using System.Linq;
@@ -18,7 +19,7 @@ namespace BloodPressureApp
             "BPLog",
             "settings.json");
         
-        public static void SaveSettings(MainViewModel viewModel)
+        public static void SaveSettings(MainViewModel viewModel, MainWindow window = null)
         {
             Console.WriteLine("Saving setting to: " + SettingsFilePath);
             try
@@ -32,6 +33,8 @@ namespace BloodPressureApp
                 // Serialize and write to file
                 string json = JsonConvert.SerializeObject(viewModel, Newtonsoft.Json.Formatting.Indented);
                 File.WriteAllText(SettingsFilePath, json);
+                // Save window position and size (if visible)
+                
             }
             catch (Exception ex)
             {
@@ -65,18 +68,180 @@ namespace BloodPressureApp
 
     public class MainViewModel : INotifyPropertyChanged
     {
-        public event PropertyChangedEventHandler PropertyChanged;
-
+        public event PropertyChangedEventHandler? PropertyChanged;
+        // Add this property for the "Add Record" command
+        // public ICommand AddRecordCommand { get; }
+        private ObservableCollection<HealthRecord> _readings;
+        public ObservableCollection<HealthRecord> Readings
+        {
+            get => _readings;
+            set
+            {
+                _readings = value;
+                OnPropertyChanged(nameof(Readings));
+            }
+        }
+        
         private string _userName;
         private DateTime? _birthDate;
         private int? _systolic;
         private int? _diastolic;
         private int? _pulse;
         private DateTime? _readingDate;
-        private string _readingTime;
+        private TimeSpan? _readingTime;
         private bool _standing;
 
-        // Example Properties
+        public MainViewModel(string userName)
+        {
+            _userName = userName;
+        }
+
+        public MainViewModel()
+            : this("")
+        {
+            // Default constructor
+            _readings = new ObservableCollection<HealthRecord>();
+            // AddRecordCommand = new RelayCommand(AddRecordButton_Click);
+        }
+        
+        // private string _connectionString;
+        //
+        // // This method will execute on "Add Record" button click
+        // private void AddRecordButton_Click()
+        // {
+        //     // Logic to handle adding a record
+        //     // This may include validation and adding it to a collection such as 'Readings'
+        //     // Example:
+        //     var date = ReadingDate ??= DateTime.Now;
+        //     if (Systolic.HasValue && Diastolic.HasValue && Pulse.HasValue && ReadingDate.HasValue)
+        //     {
+        //         // Add to collected Readings (assuming Readings is an ObservableCollection)
+        //         Readings.Add(new HealthRecord()
+        //         {
+        //             Systolic = Systolic.Value,
+        //             Diastolic = Diastolic.Value,
+        //             Pulse = Pulse.Value,
+        //             ReadingDate = ReadingDate.Value,
+        //             ReadingTime = ReadingTime,
+        //             Standing = Standing
+        //         });
+        //
+        //     if (string.IsNullOrWhiteSpace(UserName) || BirthDate == null)
+        //     {
+        //         MessageBox.Show("Please enter user name and birthdate.");
+        //         return;
+        //     }
+        //
+        //     if (string.IsNullOrWhiteSpace(Systolic.ToString()) || 
+        //         string.IsNullOrWhiteSpace(Diastolic.ToString()) ||
+        //         string.IsNullOrWhiteSpace(Pulse.ToString()))
+        //     {
+        //         MessageBox.Show("Please enter valid blood pressure readings.");
+        //         return;
+        //     }
+        //
+        //     string documentsPath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments) + "\\BPReadings";
+        //     _connectionString = "Data Source=" + Path.Combine(documentsPath, "bloodpressure.db");
+        //
+        //     using var connection = new SqliteConnection(_connectionString);
+        //     connection.Open();
+        //
+        //     // Check if user exists
+        //     string selectUserQuery = "SELECT Id FROM Users WHERE Name = @name AND Birthdate = @birthdate";
+        //     using var selectUserCmd = new SqliteCommand(selectUserQuery, connection);
+        //     selectUserCmd.Parameters.AddWithValue("@name", UserName);
+        //     // selectUserCmd.Parameters.AddWithValue("@birthdate", BirthDate.SelectedDate.Value.ToString("yyyy-MM-dd"));
+        //     selectUserCmd.Parameters.AddWithValue("@birthdate", BirthDate.Value.ToString("yyyy-MM-dd"));
+        //     object result = selectUserCmd.ExecuteScalar();
+        //
+        //     int userId;
+        //     if (result == null)
+        //     {
+        //         // Insert user
+        //         string insertUserQuery = "INSERT INTO Users (Name, Birthdate) VALUES (@name, @birthdate)";
+        //         using var insertUserCmd = new SqliteCommand(insertUserQuery, connection);
+        //         insertUserCmd.Parameters.AddWithValue("@name", UserName);
+        //         insertUserCmd.Parameters.AddWithValue("@birthdate", BirthDate.Value.ToString("yyyy-MM-dd"));
+        //         insertUserCmd.ExecuteNonQuery();
+        //
+        //         userId = Convert.ToInt32(new SqliteCommand("SELECT last_insert_rowid();", connection).ExecuteScalar());
+        //     }
+        //     else
+        //     {
+        //         userId = Convert.ToInt32(result);
+        //     }
+        //
+        //     // Add reading
+        //     string position = Standing == true ? "Standing" : "Sitting";
+        //     string insertReadingQuery = @"INSERT INTO Readings (UserId, Systolic, Diastolic, Pulse, ReadingTime, Position) 
+        //                                  VALUES (@userId, @systolic, @diastolic, @pulse, @readingTime, @position)";
+        //     using var insertReadingCmd = new SqliteCommand(insertReadingQuery, connection);
+        //     insertReadingCmd.Parameters.AddWithValue("@userId", userId);
+        //     insertReadingCmd.Parameters.AddWithValue("@systolic", Systolic);
+        //     insertReadingCmd.Parameters.AddWithValue("@diastolic", Diastolic);
+        //     insertReadingCmd.Parameters.AddWithValue("@pulse", Pulse);
+        //     var timeString = ReadingTime?.ToString() ?? "00:00:00";
+        //     date = date.Date.Add(TimeSpan.Parse(timeString));
+        //     insertReadingCmd.Parameters.AddWithValue("@readingTime", date);
+        //     insertReadingCmd.Parameters.AddWithValue("@position", position);
+        //     insertReadingCmd.ExecuteNonQuery();
+        //     
+        //     connection.Close();
+        //     // Reload readings
+        //     LoadReadings();
+        //
+        //     // // Clear input fields or perform other UI updates as needed
+        //     // Systolic = null;
+        //     // Diastolic = null;
+        //     // Pulse = null;
+        //     // ReadingDate = null;
+        //     // ReadingTime = null;
+        //     }
+        // }
+        //
+        // private void LoadReadings()
+        // {
+        //     string documentsPath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments) + "\\BPReadings";
+        //     _connectionString = "Data Source=" + Path.Combine(documentsPath, "bloodpressure.db");
+        //     using var connection = new SqliteConnection(_connectionString);
+        //
+        //     connection.Open();
+        //
+        //     string query = @"SELECT u.Name, u.Birthdate, r.Systolic, r.Diastolic, r.Pulse, r.ReadingTime, r.Position
+        //                      FROM Readings r
+        //                      JOIN Users u ON r.UserId = u.Id";
+        //
+        //     using var cmd = new SqliteCommand(query, connection);
+        //     using var reader = cmd.ExecuteReader();
+        //
+        //     var readings = new List<dynamic>();
+        //     while (reader.Read())
+        //     {
+        //         readings.Add(new HealthRecord()
+        //         {
+        //             Name = reader.GetString(0),
+        //             BirthDate = DateTime.Parse(reader.GetString(1)),
+        //             Systolic = reader.GetInt32(2),
+        //             Diastolic = reader.GetInt32(3),
+        //             Pulse = reader.GetInt32(4),
+        //             ReadingDate = DateTime.Parse(reader.GetString(5)),
+        //             ReadingTime = DateTime.Parse(reader.GetString(5)).TimeOfDay,
+        //             Standing = reader.GetString(6) == "Standing"
+        //         });
+        //     }
+        //
+        //     Readings.Clear();
+        //     foreach (var reading in readings)
+        //     {
+        //         Readings.Add(reading);
+        //         Console.WriteLine(reading);
+        //     }
+        //     
+        //     OnPropertyChanged(nameof(Readings));
+        // }
+        
+
+        // Properties
         public string UserName
         {
             get => _userName;
@@ -92,12 +257,12 @@ namespace BloodPressureApp
 
         public DateTime? BirthDate
         {
-            get => _birthDate;
+            get => _birthDate?.Date;
             set
             {
-                if (_birthDate != value)
+                if (_birthDate != value?.Date)
                 {
-                    _birthDate = value;
+                    _birthDate = value?.Date;
                     OnPropertyChanged(nameof(BirthDate));
                 }
             }
@@ -155,7 +320,7 @@ namespace BloodPressureApp
             }
         }
 
-        public string ReadingTime
+        public TimeSpan? ReadingTime
         {
             get => _readingTime;
             set
@@ -181,12 +346,26 @@ namespace BloodPressureApp
             }
         }
 
+        private HealthRecord _selectedReading;
+
+        public HealthRecord SelectedReading
+        {
+            get => _selectedReading;
+            set
+            {
+                if (_selectedReading != value)
+                {
+                    _selectedReading = value;
+                    OnPropertyChanged(nameof(SelectedReading));
+                }
+            }
+        }
+
         // Handle Saving and Loading of Settings with SettingsManager.
         public void SaveSettings() => SettingsManager.SaveSettings(this);
         public void LoadSettings()
         {
             var loadedSettings = SettingsManager.LoadSettings();
-            if (loadedSettings == null) return;
 
             // Assign loaded settings to current properties
             UserName = loadedSettings.UserName;
@@ -197,15 +376,15 @@ namespace BloodPressureApp
             ReadingDate = loadedSettings.ReadingDate;
             ReadingTime = loadedSettings.ReadingTime;
             Standing = loadedSettings.Standing;
+            
         }
-
         protected void OnPropertyChanged(string propertyName) =>
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
     }
 
 
     public partial class MainWindow : Window
-    {
+    { 
         private MainViewModel _viewModel;
 
         public MainWindow()
@@ -221,6 +400,7 @@ namespace BloodPressureApp
 
             // Handle closing to save settings
             this.Closing += (sender, args) => _viewModel.SaveSettings();
+            
             LoadReadings();
         }
 
@@ -308,7 +488,8 @@ namespace BloodPressureApp
             insertReadingCmd.Parameters.AddWithValue("@diastolic", _viewModel.Diastolic);
             insertReadingCmd.Parameters.AddWithValue("@pulse", _viewModel.Pulse);
             var date = _viewModel.ReadingDate ??= DateTime.Now;
-            date = date.Date.Add(TimeSpan.Parse(_viewModel.ReadingTime));
+            var timeString = _viewModel.ReadingTime?.ToString() ?? "00:00:00";
+            date = date.Date.Add(TimeSpan.Parse(timeString));
             insertReadingCmd.Parameters.AddWithValue("@readingTime", date);
             insertReadingCmd.Parameters.AddWithValue("@position", position);
             insertReadingCmd.ExecuteNonQuery();
@@ -404,10 +585,17 @@ namespace BloodPressureApp
                 _viewModel.Pulse = selectedRecord.Pulse;
                 _viewModel.ReadingDate = selectedRecord.ReadingDate;
                 // _viewModel.ReadingTime = selectedRecord.ReadingTime.ToString();
-                _viewModel.ReadingTime = selectedRecord.ReadingTime.ToString(@"hh\:mm");
+                _viewModel.ReadingTime = selectedRecord.ReadingTime;
                 
                 _viewModel.Standing = selectedRecord.Standing;
             }
+        }
+
+        private void SetCurrentDateTime_Click(object sender, RoutedEventArgs e)
+        {
+            // Set the current date and time to the view model
+            _viewModel.ReadingDate = DateTime.Now;
+            _viewModel.ReadingTime = TimeSpan.Parse(DateTime.Now.ToString("HH:mm"));
         }
         
     }
