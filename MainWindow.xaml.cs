@@ -9,8 +9,9 @@ using System.Windows;
 using System.Windows.Input;
 using Newtonsoft.Json;
 using Formatting = System.Xml.Formatting;
+using System.Runtime.CompilerServices;
 
-namespace BloodPressureApp
+namespace BloodPressureApp // Assuming this is your namespace
 {
     public static class SettingsManager
     {
@@ -33,7 +34,6 @@ namespace BloodPressureApp
                 // Serialize and write to file
                 string json = JsonConvert.SerializeObject(viewModel, Newtonsoft.Json.Formatting.Indented);
                 File.WriteAllText(SettingsFilePath, json);
-                // Save window position and size (if visible)
                 
             }
             catch (Exception ex)
@@ -61,187 +61,209 @@ namespace BloodPressureApp
                 Console.WriteLine($"Error loading settings:\n  {ex}");
             }
 
-            // Return new instance with default settings if file not found or error
+            // Return a new instance with default settings if a file not found or error
             return new MainViewModel();
         }
     }
 
     public class MainViewModel : INotifyPropertyChanged
     {
-        public event PropertyChangedEventHandler? PropertyChanged;
-        private ObservableCollection<HealthRecord> _readings;
-        public ObservableCollection<HealthRecord> Readings
-        {
-            get => _readings;
-            set
-            {
-                _readings = value;
-                OnPropertyChanged(nameof(Readings));
-            }
-        }
-        
-        private string _userName;
+        private string _userName = "Default User";
         private DateTime? _birthDate;
         private int? _systolic;
         private int? _diastolic;
         private int? _pulse;
-        private DateTime? _readingDate;
-        private TimeSpan? _readingTime;
+        private DateTime? _readingDateTime; // Combined Date and Time for reading
         private bool _standing;
+        private HealthRecord _selectedReading;
+        private DateTime? _lastExportDateTime;
+        private DateTime? _exportStartDateTime;
 
-        public MainViewModel(string userName)
-        {
-            _userName = userName;
-        }
+        public ObservableCollection<HealthRecord> Readings { get; set; } = new ObservableCollection<HealthRecord>();
 
+        // Constructor used by WPF DataContext if no specific user needed at start
         public MainViewModel()
-            : this("")
         {
-            // Default constructor
-            _readings = new ObservableCollection<HealthRecord>();
-            // AddRecordCommand = new RelayCommand(AddRecordButton_Click);
+           // Consider loading settings here if appropriate
+           // LoadSettings(); // Example - Careful with async/timing
         }
-        
 
-        // Properties
+        // Maybe a constructor for specific user init
+        public MainViewModel(string userName) : this()
+        {
+            UserName = userName;
+        }
+
         public string UserName
         {
             get => _userName;
-            set
-            {
-                if (_userName != value)
-                {
-                    _userName = value;
-                    OnPropertyChanged(nameof(UserName));
-                }
-            }
+            set { _userName = value; OnPropertyChanged(); }
         }
 
         public DateTime? BirthDate
         {
-            get => _birthDate?.Date;
-            set
-            {
-                if (_birthDate != value?.Date)
-                {
-                    _birthDate = value?.Date;
-                    OnPropertyChanged(nameof(BirthDate));
-                }
-            }
+            get => _birthDate;
+            set { _birthDate = value; OnPropertyChanged(); }
         }
 
         public int? Systolic
         {
             get => _systolic;
-            set
-            {
-                if (_systolic != value)
-                {
-                    _systolic = value;
-                    OnPropertyChanged(nameof(Systolic));
-                }
-            }
+            set { _systolic = value; OnPropertyChanged(); }
         }
 
         public int? Diastolic
         {
             get => _diastolic;
-            set
-            {
-                if (_diastolic != value)
-                {
-                    _diastolic = value;
-                    OnPropertyChanged(nameof(Diastolic));
-                }
-            }
+            set { _diastolic = value; OnPropertyChanged(); }
         }
 
         public int? Pulse
         {
             get => _pulse;
+            set { _pulse = value; OnPropertyChanged(); }
+        }
+
+        // Combined Reading Date and Time property
+        public DateTime? ReadingDateTime
+        {
+            get => _readingDateTime;
             set
             {
-                if (_pulse != value)
-                {
-                    _pulse = value;
-                    OnPropertyChanged(nameof(Pulse));
-                }
+                _readingDateTime = value;
+                OnPropertyChanged();
+                // Optionally update separate Date/Time parts if needed for UI binding
+                OnPropertyChanged(nameof(ReadingDate));
+                OnPropertyChanged(nameof(ReadingTime));
             }
         }
 
+        // Helper property for DatePicker binding (Reading Date)
         public DateTime? ReadingDate
         {
-            get => _readingDate;
+            get => _readingDateTime?.Date;
             set
             {
-                if (_readingDate != value)
-                {
-                    _readingDate = value;
-                    OnPropertyChanged(nameof(ReadingDate));
-                }
+                var currentTime = _readingDateTime?.TimeOfDay ?? DateTime.Now.TimeOfDay;
+                ReadingDateTime = value?.Date + currentTime;
+                OnPropertyChanged();
             }
         }
 
+        // Helper property for Time TextBox binding (Reading Time)
+        // Consider using a MaskedTextBox or TimePicker control for better UX
         public TimeSpan? ReadingTime
         {
-            get => _readingTime;
+            get => _readingDateTime?.TimeOfDay;
             set
             {
-                if (_readingTime != value)
-                {
-                    _readingTime = value;
-                    OnPropertyChanged(nameof(ReadingTime));
-                }
+                var currentDate = _readingDateTime?.Date ?? DateTime.Today;
+                ReadingDateTime = currentDate + (value ?? DateTime.Now.TimeOfDay);
+                OnPropertyChanged();
             }
         }
+
 
         public bool Standing
         {
             get => _standing;
-            set
-            {
-                if (_standing != value)
-                {
-                    _standing = value;
-                    OnPropertyChanged(nameof(Standing));
-                }
-            }
+            set { _standing = value; OnPropertyChanged(); }
         }
-
-        private HealthRecord _selectedReading;
 
         public HealthRecord SelectedReading
         {
             get => _selectedReading;
+            set { _selectedReading = value; OnPropertyChanged(); }
+        }
+
+        // Stores the date/time of the last successful export
+        public DateTime? LastExportDateTime
+        {
+            get => _lastExportDateTime;
             set
             {
-                if (_selectedReading != value)
+                if (_lastExportDateTime != value)
                 {
-                    _selectedReading = value;
-                    OnPropertyChanged(nameof(SelectedReading));
+                    _lastExportDateTime = value;
+                    OnPropertyChanged();
+                    // When LastExportDateTime changes, potentially update the default ExportStartDateTime
+                    // This logic might be better placed in LoadSettings or after a successful export
+                     if (ExportStartDateTime == null && value != null) // Only default if not already set by user maybe?
+                     {
+                         ExportStartDateTime = value;
+                     }
                 }
             }
         }
 
-        // Handle Saving and Loading of Settings with SettingsManager.
-        public void SaveSettings() => SettingsManager.SaveSettings(this);
+        // Stores the start date/time for the next export, defaults to LastExportDateTime
+        public DateTime? ExportStartDateTime
+        {
+            get => _exportStartDateTime;
+            set
+            {
+                if (_exportStartDateTime != value)
+                {
+                    _exportStartDateTime = value;
+                    OnPropertyChanged();
+                    // Optionally update separate Date/Time parts if needed for UI binding
+                    OnPropertyChanged(nameof(ExportStartDate));
+                    OnPropertyChanged(nameof(ExportStartTime));
+                }
+            }
+        }
+
+         // Helper property for DatePicker binding (Export Start Date)
+        public DateTime? ExportStartDate
+        {
+            get => _exportStartDateTime?.Date;
+            set
+            {
+                var currentTime = _exportStartDateTime?.TimeOfDay ?? TimeSpan.Zero; // Default to midnight if no time set
+                ExportStartDateTime = value?.Date + currentTime;
+                OnPropertyChanged();
+            }
+        }
+
+        // Helper property for Time TextBox binding (Export Start Time)
+        // Consider using a MaskedTextBox or TimePicker control for better UX
+        public TimeSpan? ExportStartTime
+        {
+            get => _exportStartDateTime?.TimeOfDay;
+            set
+            {
+                 var currentDate = _exportStartDateTime?.Date ?? DateTime.Today; // Default to today if no date set
+                ExportStartDateTime = currentDate + (value ?? TimeSpan.Zero); // Default to midnight if no time provided
+                OnPropertyChanged();
+            }
+        }
+
+
+        // --- Methods ---
+
+        public void SaveSettings()
+        {
+            // Instance might be better injected or retrieved via service locator
+            SettingsManager.SaveSettings(this); // Pass the ViewModel instance
+        }
+
         public void LoadSettings()
         {
-            var loadedSettings = SettingsManager.LoadSettings();
+            var loadedViewModelData = SettingsManager.LoadSettings();
 
-            // Assign loaded settings to current properties
-            UserName = loadedSettings.UserName;
-            BirthDate = loadedSettings.BirthDate;
-            Systolic = loadedSettings.Systolic;
-            Diastolic = loadedSettings.Diastolic;
-            Pulse = loadedSettings.Pulse;
-            ReadingDate = loadedSettings.ReadingDate;
-            ReadingTime = loadedSettings.ReadingTime;
-            Standing = loadedSettings.Standing;
-            
+            // Apply loaded settings to this instance
+            UserName = loadedViewModelData.UserName;
+            BirthDate = loadedViewModelData.BirthDate;
+            LastExportDateTime = loadedViewModelData.LastExportDateTime; // Load last export time
+            // Default the Export Start time to the Last Export time when loading
+            ExportStartDateTime = LastExportDateTime;
         }
-        protected void OnPropertyChanged(string propertyName) =>
+
+        public event PropertyChangedEventHandler PropertyChanged;
+        protected virtual void OnPropertyChanged([CallerMemberName] string propertyName = null)
+        {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
     }
 
 
@@ -261,7 +283,7 @@ namespace BloodPressureApp
             DataContext = _viewModel;
 
             // Handle closing to save settings
-            this.Closing += (sender, args) => _viewModel.SaveSettings();
+            Closing += (sender, args) => _viewModel.SaveSettings();
             
             LoadReadings();
         }
@@ -394,7 +416,7 @@ namespace BloodPressureApp
 
         private void ExportTextButton_Click(object sender, RoutedEventArgs e)
         {
-            // Example file path (update this logic based on actual file-saving implementation)
+            // Example file path (update this logic based on the actual file-saving implementation)
             string fileName = $"{DateTime.Now:yyyy-MM-dd}_bp_readings.txt";
             string folderPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "BPReadings"); // Example folder
             string fullPath = Path.Combine(folderPath, fileName);
@@ -408,10 +430,21 @@ namespace BloodPressureApp
             using var writer = new StreamWriter(fullPath);
             if ((ReadingsGrid.ItemsSource as IList<dynamic>)?[0] is HealthRecord hr) 
                 writer.WriteLine($"Name: {hr.Name}  Birth Date: {hr.BirthDate:yyyy-MM-dd}");
-            foreach (var item in ReadingsGrid.ItemsSource)
+            
+            // Filter records based on LastExportDateTime
+            var recordsToExport = ReadingsGrid.ItemsSource.Cast<HealthRecord>()
+                .Where(r => _viewModel.LastExportDateTime == null || r.ReadingDate > _viewModel.LastExportDateTime)
+                .ToList();
+                
+            foreach (var item in recordsToExport)
             {
                 writer.WriteLine(item.ToString());
             }
+            
+            // Update the LastExportDateTime to the current date/time
+            _viewModel.LastExportDateTime = DateTime.Now;
+            _viewModel.SaveSettings();
+            
             Clipboard.SetText(fullPath);
             MessageBox.Show($"Data exported and path copied to clipboard:\n{fullPath}", 
                 "Export Successful", MessageBoxButton.OK, MessageBoxImage.Information);
@@ -423,16 +456,27 @@ namespace BloodPressureApp
             string folderPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "BPReadings"); // Example folder
             string fullPath = Path.Combine(folderPath, fileName);
 
+            // Ensure the directory exists
+            if (!Directory.Exists(folderPath))
+            {
+                Directory.CreateDirectory(folderPath);
+            }
+        
             using var writer = new StreamWriter(fullPath);
             writer.WriteLine("<html><body><table border='2px' style='border-collapse:collapse; padding:5px;'>");
             writer.WriteLine("<style>th, td { padding: 5px; text-align: center}</style>"); // Added CSS for cell padding
-
+        
             if ((ReadingsGrid.ItemsSource as IList<dynamic>)?[0] is HealthRecord hr) 
                 writer.WriteLine($"<h1>{hr.Name} {hr.BirthDate:MM-dd-yyyy}</h1>");
-    
+            
             writer.WriteLine("<tr><th>Date</th><th>Time</th><th>Sys/Dia</th><th>Pulse</th><th>Standing</th></tr>");
-
-            foreach (HealthRecord item in ReadingsGrid.ItemsSource)
+        
+            // Filter records based on LastExportDateTime
+            var recordsToExport = ReadingsGrid.ItemsSource.Cast<HealthRecord>()
+                .Where(r => _viewModel.LastExportDateTime == null || r.ReadingDate > _viewModel.LastExportDateTime)
+                .ToList();
+        
+            foreach (HealthRecord item in recordsToExport)
             {
                 writer.WriteLine($"<tr><td>{item.ReadingDate:MM-dd-yyyy}</td>" +
                                  $"<td>{item.ReadingTime.ToString()?[..5]}</td>" +
@@ -440,8 +484,12 @@ namespace BloodPressureApp
                                  $"<td>{item.Pulse}</td>" +
                                  $"<td>{(item.Standing == true ? "X" : "")}</td></tr>");
             }
-
+        
             writer.WriteLine("</table></body></html>");
+        
+            // Update the LastExportDateTime to the current date/time
+            _viewModel.LastExportDateTime = DateTime.Now;
+            _viewModel.SaveSettings();
 
             Clipboard.SetText(fullPath);
             MessageBox.Show($"Data exported and path copied to clipboard:\n{fullPath}", 
@@ -472,6 +520,26 @@ namespace BloodPressureApp
                 _viewModel.Standing = selectedRecord.Standing;
             }
         }
+        
+        private void SetLastExportedRecord_Click(object sender, RoutedEventArgs e)
+        {
+            // Check if a row is selected
+            if (ReadingsGrid.SelectedItem is HealthRecord selectedRecord)
+            {
+                // Set the LastExportDateTime to the selected record's date
+                _viewModel.LastExportDateTime = selectedRecord.ReadingDate;
+                
+                _viewModel.SaveSettings();
+        
+                MessageBox.Show($"Last exported record set to: {selectedRecord.ReadingDate:yyyy-MM-dd HH:mm}",
+                    "Last Export Date Updated", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            else
+            {
+                MessageBox.Show("Please select a record first.",
+                    "No Record Selected", MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
+        }        
 
         private void SetCurrentDateTime_Click(object sender, RoutedEventArgs e)
         {
