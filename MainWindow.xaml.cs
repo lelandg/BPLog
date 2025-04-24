@@ -158,11 +158,25 @@ namespace BloodPressureApp // Assuming this is your namespace
             set
             {
                 var currentDate = _readingDateTime?.Date ?? DateTime.Today;
-                ReadingDateTime = currentDate + (value ?? DateTime.Now.TimeOfDay);
+        
+                // Only update with value if it's provided, otherwise keep the existing time
+                // or use default time only if there's no existing time
+                if (value.HasValue)
+                {
+                    ReadingDateTime = currentDate + value.Value;
+                    Console.WriteLine($"Set date/time to: {ReadingDateTime}");
+                }
+                else if (_readingDateTime == null) 
+                {
+                    // Only set current time if there's no existing time at all
+                    ReadingDateTime = currentDate + DateTime.Now.TimeOfDay;
+                    Console.WriteLine($"Set date/time to current time: {ReadingDateTime}");
+                }
+        
                 OnPropertyChanged();
+                OnPropertyChanged(nameof(ReadingDate));
             }
         }
-
 
         public bool Standing
         {
@@ -365,15 +379,41 @@ namespace BloodPressureApp // Assuming this is your namespace
             // Add reading
             string position = _viewModel.Standing == true ? "Standing" : "Sitting";
             string insertReadingQuery = @"INSERT INTO Readings (UserId, Systolic, Diastolic, Pulse, ReadingTime, Position) 
-                                         VALUES (@userId, @systolic, @diastolic, @pulse, @readingTime, @position)";
+                            VALUES (@userId, @systolic, @diastolic, @pulse, @readingTime, @position)";
             using var insertReadingCmd = new SqliteCommand(insertReadingQuery, connection);
             insertReadingCmd.Parameters.AddWithValue("@userId", userId);
             insertReadingCmd.Parameters.AddWithValue("@systolic", _viewModel.Systolic);
             insertReadingCmd.Parameters.AddWithValue("@diastolic", _viewModel.Diastolic);
             insertReadingCmd.Parameters.AddWithValue("@pulse", _viewModel.Pulse);
-            var date = _viewModel.ReadingDate ??= DateTime.Now;
-            var timeString = _viewModel.ReadingTime?.ToString() ?? "00:00:00";
-            date = date.Date.Add(TimeSpan.Parse(timeString));
+            DateTime date;
+            if (_viewModel.ReadingDate.HasValue)
+            {
+                // Get the date from the DatePicker
+                date = _viewModel.ReadingDate.Value.Date;
+                
+                // Add the time component - either from the time field or current time
+                if (_viewModel.ReadingTime.HasValue)
+                {
+                    date = date.Add(_viewModel.ReadingTime.Value);
+                }
+                else
+                {
+                    date = date.Add(DateTime.Now.TimeOfDay);
+                }
+            }
+            else
+            {
+                // If no date was picked, use today with either provided time or current time
+                date = DateTime.Today;
+                if (_viewModel.ReadingTime.HasValue)
+                {
+                    date = date.Add(_viewModel.ReadingTime.Value);
+                }
+                else
+                {
+                    date = date.Add(DateTime.Now.TimeOfDay);
+                }
+            }
             insertReadingCmd.Parameters.AddWithValue("@readingTime", date);
             insertReadingCmd.Parameters.AddWithValue("@position", position);
             insertReadingCmd.ExecuteNonQuery();
@@ -395,20 +435,26 @@ namespace BloodPressureApp // Assuming this is your namespace
             using var cmd = new SqliteCommand(query, connection);
             using var reader = cmd.ExecuteReader();
 
-            var readings = new List<dynamic>();
+            var readings = new List<HealthRecord>();
             while (reader.Read())
             {
-                readings.Add(new HealthRecord()
+                var readingDateTime = DateTime.Parse(reader.GetString(5));
+                var record = new HealthRecord()
                 {
                     Name = reader.GetString(0),
                     BirthDate = DateTime.Parse(reader.GetString(1)),
                     Systolic = reader.GetInt32(2),
                     Diastolic = reader.GetInt32(3),
                     Pulse = reader.GetInt32(4),
-                    ReadingDate = DateTime.Parse(reader.GetString(5)),
-                    ReadingTime = DateTime.Parse(reader.GetString(5)).TimeOfDay,
+                    ReadingDate = readingDateTime,
+                    // We don't need to explicitly set ReadingTime as it's derived from ReadingDate
                     Standing = reader.GetString(6) == "Standing"
-                });
+                };
+                
+                // Debugging - verify ReadingTime is actually populated
+                Console.WriteLine($"Record time: {record.ReadingTime}");
+                
+                readings.Add(record);
             }
 
             ReadingsGrid.ItemsSource = readings;
@@ -496,27 +542,19 @@ namespace BloodPressureApp // Assuming this is your namespace
                 "Export Successful", MessageBoxButton.OK, MessageBoxImage.Information);
         }
         
-        // Event handler for double-clicking on a DataGrid row
         private void ReadingsGrid_MouseDoubleClick(object sender, MouseButtonEventArgs e)
         {
             // Check if a row is selected
-            if (ReadingsGrid.SelectedItem is not null)
+            if (ReadingsGrid.SelectedItem is HealthRecord selectedRecord)
             {
-                // Cast the selected item to the appropriate type
-                var selectedRecord = (HealthRecord)ReadingsGrid.SelectedItem;
-
                 // Populate the fields in the form
                 _viewModel.UserName = selectedRecord.Name;
                 _viewModel.BirthDate = selectedRecord.BirthDate;
-                BirthDatePicker.SelectedDate = selectedRecord.BirthDate;
-                // BirthDatePicker.Text = selectedRecord.BirthDate.ToString("yyyy-MM-dd");
                 _viewModel.Systolic = selectedRecord.Systolic;
                 _viewModel.Diastolic = selectedRecord.Diastolic;
                 _viewModel.Pulse = selectedRecord.Pulse;
-                _viewModel.ReadingDate = selectedRecord.ReadingDate;
-                // _viewModel.ReadingTime = selectedRecord.ReadingTime.ToString();
+                _viewModel.ReadingDate = selectedRecord.ReadingDate.Date;
                 _viewModel.ReadingTime = selectedRecord.ReadingTime;
-                
                 _viewModel.Standing = selectedRecord.Standing;
             }
         }

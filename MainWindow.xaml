@@ -15,35 +15,35 @@
             <RowDefinition Height="Auto"/> <!-- Row for Export Buttons -->
         </Grid.RowDefinitions>
 
-        <!-- User Info -->
+        <!-- User Info Section -->
         <StackPanel Orientation="Horizontal" Margin="10" Grid.Row="0">
-            <TextBlock Text="Name:" VerticalAlignment="Center"/>
-            <TextBox Name="UserNameInput" Width="150" Text="{Binding  UserName, UpdateSourceTrigger=PropertyChanged}" VerticalAlignment="Center" Margin="5"
+            <Label Content="_Name:" Target="{Binding ElementName=UserNameInput}" VerticalAlignment="Center"/>
+            <TextBox Name="UserNameInput" Width="150" Text="{Binding UserName, UpdateSourceTrigger=PropertyChanged}" VerticalAlignment="Center" Margin="5"
                      bpLog:TextBoxBehaviors.SelectAllOnFocus="True" />
-            <TextBlock Text="Birthdate:" VerticalAlignment="Center" Margin="5"/>
+            <Label Content="_Birthdate:" Target="{Binding ElementName=BirthDatePicker}" VerticalAlignment="Center" Margin="5"/>
             <DatePicker Name="BirthDatePicker" Width="120" SelectedDate="{Binding BirthDate, UpdateSourceTrigger=PropertyChanged}"/>
         </StackPanel>
 
         <!-- Input Section -->
         <StackPanel Margin="10" VerticalAlignment="Top" Grid.Row="1">
-            <TextBlock Text="Enter Blood Pressure Reading:" FontWeight="Bold" Margin="5"/>
+            <Label Content="Enter Blood Pressure Reading:" FontWeight="Bold" Margin="5"/>
             <StackPanel Orientation="Horizontal" Margin="5">
-                <TextBlock Text="Systolic:" VerticalAlignment="Center"/>
-                <TextBox Width="100" Margin="5" Text="{Binding Systolic, UpdateSourceTrigger=PropertyChanged}" bpLog:TextBoxBehaviors.SelectAllOnFocus="True"/>
+                <Label Content="_Systolic:" Target="{Binding ElementName=SystolicTextBox}" VerticalAlignment="Center"/>
+                <TextBox Name="SystolicTextBox" Width="100" Margin="5" Text="{Binding Systolic, UpdateSourceTrigger=PropertyChanged}" bpLog:TextBoxBehaviors.SelectAllOnFocus="True"/>
                 
-                <TextBlock Text="Diastolic:" VerticalAlignment="Center"/>
-                <TextBox Width="100" Margin="5" Text="{Binding Diastolic, UpdateSourceTrigger=PropertyChanged}" bpLog:TextBoxBehaviors.SelectAllOnFocus="True"/>
+                <Label Content="_Diastolic:" Target="{Binding ElementName=DiastolicTextBox}" VerticalAlignment="Center"/>
+                <TextBox Name="DiastolicTextBox" Width="100" Margin="5" Text="{Binding Diastolic, UpdateSourceTrigger=PropertyChanged}" bpLog:TextBoxBehaviors.SelectAllOnFocus="True"/>
                 
-                <TextBlock Text="Pulse Rate:" VerticalAlignment="Center"/>
-                <TextBox Width="100" Margin="5" Text="{Binding Pulse, UpdateSourceTrigger=PropertyChanged}" bpLog:TextBoxBehaviors.SelectAllOnFocus="True"/>
+                <Label Content="_Pulse Rate:" Target="{Binding ElementName=PulseTextBox}" VerticalAlignment="Center"/>
+                <TextBox Name="PulseTextBox" Width="100" Margin="5" Text="{Binding Pulse, UpdateSourceTrigger=PropertyChanged}" bpLog:TextBoxBehaviors.SelectAllOnFocus="True"/>
                 
                 <CheckBox Content="Standing" Margin="5" IsChecked="{Binding Standing}"/>
             </StackPanel>
             <StackPanel Orientation="Horizontal" Margin="5">
-                <TextBlock Text="Reading Time:" VerticalAlignment="Center"/>
+                <Label Content="_Reading Time:" VerticalAlignment="Center"/>
                 <DatePicker Width="120" Margin="5" SelectedDate="{Binding ReadingDate}"/>
                 
-                <TextBlock Text="Time:" VerticalAlignment="Center"/>
+                <Label Content="_Time:" VerticalAlignment="Center"/>
                 <TextBox Width="120" Margin="5" Text="{Binding ReadingTime}" bpLog:TextBoxBehaviors.SelectAllOnFocus="True"/>
                 
                 <Button Content="_Now" Width="60" Margin="5" Click="SetCurrentDateTime_Click"/>
@@ -101,7 +101,7 @@
                     </DataGridTextColumn.ElementStyle>
                 </DataGridTextColumn>
                 <DataGridTextColumn Header="Time" 
-                                    Binding="{Binding ReadingDate, StringFormat=t}">
+                                    Binding="{Binding ReadingDate, StringFormat=\{0:hh:mm tt\}}">
                     <DataGridTextColumn.ElementStyle>
                         <Style TargetType="TextBlock">
                             <Setter Property="HorizontalAlignment" Value="Center"></Setter>
