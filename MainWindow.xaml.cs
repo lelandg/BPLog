@@ -1,17 +1,21 @@
-﻿using Microsoft.Data.Sqlite;
-using System;
-using System.Collections.Generic;
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.IO;
-using System.Linq;
-using System.Windows;
-using System.Windows.Input;
-using Newtonsoft.Json;
-using Formatting = System.Xml.Formatting;
 using System.Runtime.CompilerServices;
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Input;
+using Microsoft.Data.Sqlite;
+using Newtonsoft.Json;
+// Add this for DataGrid
+// Add this for MessageBox if not already present
+// Add this for MouseButtonEventArgs if needed for Edit logic
+// Assuming your ViewModel namespace is BloodPressureApp
+// Assuming your HealthRecord and other models are here
 
-namespace BloodPressureApp // Assuming this is your namespace
+// Make sure you have this using directive
+
+namespace BPLog // Assuming this is your namespace
 {
     public static class SettingsManager
     {
@@ -73,7 +77,7 @@ namespace BloodPressureApp // Assuming this is your namespace
         private int? _systolic;
         private int? _diastolic;
         private int? _pulse;
-        private DateTime? _readingDateTime; // Combined Date and Time for reading
+        private DateTime? _readingDateTime = DateTime.Now;
         private bool _standing;
         private HealthRecord _selectedReading;
         private DateTime? _lastExportDateTime;
@@ -81,18 +85,33 @@ namespace BloodPressureApp // Assuming this is your namespace
 
         public ObservableCollection<HealthRecord> Readings { get; set; } = new ObservableCollection<HealthRecord>();
 
-        // Constructor used by WPF DataContext if no specific user needed at start
+        // Add to MainViewModel.cs
+        public ICommand AddRecordCommand { get; }
+        public ICommand SetCurrentDateTimeCommand { get; }
+        public ICommand ExportToTextCommand { get; }
+        public ICommand ExportToHtmlCommand { get; }
+        public ICommand EditReadingCommand { get; }
+        public ICommand DeleteReadingCommand { get; }
+        public ICommand SetLastExportedCommand { get; }
+
         public MainViewModel()
         {
-           // Consider loading settings here if appropriate
-           // LoadSettings(); // Example - Careful with async/timing
+            // Initialize commands
+            AddRecordCommand = new RelayCommand(AddRecord);
+            SetCurrentDateTimeCommand = new RelayCommand(SetCurrentDateTime);
+            ExportToTextCommand = new RelayCommand(ExportToText);
+            ExportToHtmlCommand = new RelayCommand(ExportToHtml);
+            EditReadingCommand = new RelayCommand(EditReading, CanEditReading);
+            DeleteReadingCommand = new RelayCommand(DeleteReading, CanEditReading);
+            SetLastExportedCommand = new RelayCommand(SetLastExported, CanSetLastExported);
+            
+            ExportStartDateTime = LastExportDateTime;
         }
 
-        // Maybe a constructor for specific user init
-        public MainViewModel(string userName) : this()
-        {
-            UserName = userName;
-        }
+        private bool CanEditReading(object parameter) => SelectedReading != null;
+        private bool CanSetLastExported(object parameter) => SelectedReading != null;
+
+        // Implement command methods here
 
         public string UserName
         {
@@ -124,57 +143,47 @@ namespace BloodPressureApp // Assuming this is your namespace
             set { _pulse = value; OnPropertyChanged(); }
         }
 
-        // Combined Reading Date and Time property
         public DateTime? ReadingDateTime
         {
             get => _readingDateTime;
             set
             {
-                _readingDateTime = value;
-                OnPropertyChanged();
-                // Optionally update separate Date/Time parts if needed for UI binding
-                OnPropertyChanged(nameof(ReadingDate));
-                OnPropertyChanged(nameof(ReadingTime));
+                if (_readingDateTime != value)
+                {
+                    _readingDateTime = value;
+                    OnPropertyChanged();
+                    OnPropertyChanged(nameof(ReadingDate));
+                    OnPropertyChanged(nameof(ReadingTime));
+                }
             }
         }
 
-        // Helper property for DatePicker binding (Reading Date)
         public DateTime? ReadingDate
         {
             get => _readingDateTime?.Date;
             set
             {
-                var currentTime = _readingDateTime?.TimeOfDay ?? DateTime.Now.TimeOfDay;
-                ReadingDateTime = value?.Date + currentTime;
-                OnPropertyChanged();
+                if (value.HasValue)
+                {
+                    ReadingDateTime = value.Value.Date.Add(_readingDateTime?.TimeOfDay ?? TimeSpan.Zero);
+                }
+                else
+                {
+                    ReadingDateTime = null;
+                }
             }
         }
 
-        // Helper property for Time TextBox binding (Reading Time)
-        // Consider using a MaskedTextBox or TimePicker control for better UX
         public TimeSpan? ReadingTime
         {
             get => _readingDateTime?.TimeOfDay;
             set
             {
-                var currentDate = _readingDateTime?.Date ?? DateTime.Today;
-        
-                // Only update with value if it's provided, otherwise keep the existing time
-                // or use default time only if there's no existing time
-                if (value.HasValue)
+                if (value.HasValue && _readingDateTime.HasValue)
                 {
-                    ReadingDateTime = currentDate + value.Value;
-                    Console.WriteLine($"Set date/time to: {ReadingDateTime}");
+                    ReadingDateTime = _readingDateTime.Value.Date.Add(value.Value);
                 }
-                else if (_readingDateTime == null) 
-                {
-                    // Only set current time if there's no existing time at all
-                    ReadingDateTime = currentDate + DateTime.Now.TimeOfDay;
-                    Console.WriteLine($"Set date/time to current time: {ReadingDateTime}");
-                }
-        
                 OnPropertyChanged();
-                OnPropertyChanged(nameof(ReadingDate));
             }
         }
 
@@ -190,93 +199,297 @@ namespace BloodPressureApp // Assuming this is your namespace
             set { _selectedReading = value; OnPropertyChanged(); }
         }
 
-        // Stores the date/time of the last successful export
         public DateTime? LastExportDateTime
         {
             get => _lastExportDateTime;
             set
             {
-                if (_lastExportDateTime != value)
+                _lastExportDateTime = value;
+                OnPropertyChanged();
+                
+                if (ExportStartDateTime == null || ExportStartDateTime < value)
                 {
-                    _lastExportDateTime = value;
-                    OnPropertyChanged();
-                    // When LastExportDateTime changes, potentially update the default ExportStartDateTime
-                    // This logic might be better placed in LoadSettings or after a successful export
-                     if (ExportStartDateTime == null && value != null) // Only default if not already set by user maybe?
-                     {
-                         ExportStartDateTime = value;
-                     }
+                    ExportStartDateTime = value;
                 }
             }
         }
 
-        // Stores the start date/time for the next export, defaults to LastExportDateTime
         public DateTime? ExportStartDateTime
         {
             get => _exportStartDateTime;
             set
             {
-                if (_exportStartDateTime != value)
-                {
-                    _exportStartDateTime = value;
-                    OnPropertyChanged();
-                    // Optionally update separate Date/Time parts if needed for UI binding
-                    OnPropertyChanged(nameof(ExportStartDate));
-                    OnPropertyChanged(nameof(ExportStartTime));
-                }
+                _exportStartDateTime = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(ExportStartDate));
+                OnPropertyChanged(nameof(ExportStartTime));
             }
         }
 
-         // Helper property for DatePicker binding (Export Start Date)
         public DateTime? ExportStartDate
         {
             get => _exportStartDateTime?.Date;
             set
             {
-                var currentTime = _exportStartDateTime?.TimeOfDay ?? TimeSpan.Zero; // Default to midnight if no time set
-                ExportStartDateTime = value?.Date + currentTime;
+                if (value.HasValue && _exportStartDateTime.HasValue)
+                {
+                    ExportStartDateTime = value.Value.Date.Add(_exportStartDateTime.Value.TimeOfDay);
+                }
+                else if (value.HasValue)
+                {
+                    ExportStartDateTime = value.Value;
+                }
                 OnPropertyChanged();
             }
         }
 
-        // Helper property for Time TextBox binding (Export Start Time)
-        // Consider using a MaskedTextBox or TimePicker control for better UX
         public TimeSpan? ExportStartTime
         {
             get => _exportStartDateTime?.TimeOfDay;
             set
             {
-                 var currentDate = _exportStartDateTime?.Date ?? DateTime.Today; // Default to today if no date set
-                ExportStartDateTime = currentDate + (value ?? TimeSpan.Zero); // Default to midnight if no time provided
+                if (value.HasValue && _exportStartDateTime.HasValue)
+                {
+                    ExportStartDateTime = _exportStartDateTime.Value.Date.Add(value.Value);
+                }
                 OnPropertyChanged();
             }
         }
 
-
-        // --- Methods ---
+        public void LoadSettings()
+        {
+            // Load user settings from storage
+            // Example implementation: Load last export date, user preferences, etc.
+            var settings = SettingsManager.LoadSettings();
+            // Apply loaded settings to this instance
+            LastExportDateTime = settings.LastExportDateTime;
+            // Add other properties as needed
+        }
 
         public void SaveSettings()
         {
-            // Instance might be better injected or retrieved via service locator
-            SettingsManager.SaveSettings(this); // Pass the ViewModel instance
-        }
-
-        public void LoadSettings()
-        {
-            var loadedViewModelData = SettingsManager.LoadSettings();
-
-            // Apply loaded settings to this instance
-            UserName = loadedViewModelData.UserName;
-            BirthDate = loadedViewModelData.BirthDate;
-            LastExportDateTime = loadedViewModelData.LastExportDateTime; // Load last export time
-            // Default the Export Start time to the Last Export time when loading
-            ExportStartDateTime = LastExportDateTime;
+            // Save current settings to storage
+            // Example implementation: Save last export date, user preferences, etc.
+            SettingsManager.SaveSettings(this);
         }
 
         public event PropertyChangedEventHandler PropertyChanged;
+
         protected virtual void OnPropertyChanged([CallerMemberName] string propertyName = null)
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
+
+        // Add these methods to MainViewModel class
+
+        private void AddRecord(object parameter)
+        {
+            // Validate input
+            if (!Systolic.HasValue || !Diastolic.HasValue || !Pulse.HasValue || !ReadingDateTime.HasValue)
+            {
+                // You would typically show a message to the user
+                // In a full implementation, use a service or message broker
+                return;
+            }
+
+            // Create new health record
+            var newReading = new HealthRecord
+            {
+                Name = UserName,
+                BirthDate = BirthDate ?? DateTime.Now,
+                Systolic = Systolic.Value,
+                Diastolic = Diastolic.Value,
+                Pulse = Pulse.Value,
+                ReadingDate = ReadingDateTime.Value,
+                Standing = Standing,
+                Id = Readings.Count > 0 ? Readings.Max(r => r.Id) + 1 : 1
+            };
+
+            // Add to collection
+            Readings.Add(newReading);
+
+            // Clear input fields
+            Systolic = null;
+            Diastolic = null;
+            Pulse = null;
+            ReadingDateTime = DateTime.Now;
+            Standing = false;
+
+            // Save settings
+            SaveSettings();
+        }
+
+        private void SetCurrentDateTime(object parameter)
+        {
+            ReadingDateTime = DateTime.Now;
+        }
+
+        private void ExportToText(object parameter)
+        {
+            // In a real implementation, use a service for file operations
+            try
+            {
+                var dialog = new Microsoft.Win32.SaveFileDialog
+                {
+                    DefaultExt = ".txt",
+                    Filter = "Text documents (.txt)|*.txt"
+                };
+
+                bool? result = dialog.ShowDialog();
+
+                if (result == true)
+                {
+                    string filePath = dialog.FileName;
+                    
+                    // Get records after last export
+                    var recordsToExport = ExportStartDateTime.HasValue
+                        ? Readings.Where(r => r.ReadingDate >= ExportStartDateTime.Value).ToList()
+                        : Readings.ToList();
+
+                    if (recordsToExport.Count == 0)
+                    {
+                        // Show message: "No new records to export"
+                        return;
+                    }
+
+                    using (StreamWriter writer = new StreamWriter(filePath))
+                    {
+                        writer.WriteLine($"Blood Pressure Readings for {UserName}");
+                        writer.WriteLine($"Exported on {DateTime.Now}");
+                        writer.WriteLine(new string('-', 50));
+
+                        foreach (var record in recordsToExport)
+                        {
+                            writer.WriteLine(record.ToString());
+                        }
+                    }
+
+                    // Update last export date
+                    LastExportDateTime = DateTime.Now;
+                    SaveSettings();
+                }
+            }
+            catch (Exception ex)
+            {
+                // Log error and show message to user
+                Console.WriteLine($"Error exporting to text: {ex.Message}");
+            }
+        }
+
+        private void ExportToHtml(object parameter)
+        {
+            try
+            {
+                var dialog = new Microsoft.Win32.SaveFileDialog
+                {
+                    DefaultExt = ".html",
+                    Filter = "HTML documents (.html)|*.html"
+                };
+
+                bool? result = dialog.ShowDialog();
+
+                if (result == true)
+                {
+                    string filePath = dialog.FileName;
+                    
+                    // Get records after last export
+                    var recordsToExport = ExportStartDateTime.HasValue
+                        ? Readings.Where(r => r.ReadingDate >= ExportStartDateTime.Value).ToList()
+                        : Readings.ToList();
+
+                    if (recordsToExport.Count == 0)
+                    {
+                        // Show message: "No new records to export"
+                        return;
+                    }
+
+                    using (StreamWriter writer = new StreamWriter(filePath))
+                    {
+                        writer.WriteLine("<!DOCTYPE html>");
+                        writer.WriteLine("<html>");
+                        writer.WriteLine("<head>");
+                        writer.WriteLine("<title>Blood Pressure Readings</title>");
+                        writer.WriteLine("<style>");
+                        writer.WriteLine("body { font-family: Arial, sans-serif; margin: 20px; }");
+                        writer.WriteLine("table { border-collapse: collapse; width: 100%; }");
+                        writer.WriteLine("th, td { border: 1px solid #ddd; padding: 8px; text-align: center; }");
+                        writer.WriteLine("th { background-color: #f2f2f2; }");
+                        writer.WriteLine("</style>");
+                        writer.WriteLine("</head>");
+                        writer.WriteLine("<body>");
+                        writer.WriteLine($"<h1>Blood Pressure Readings for {UserName}</h1>");
+                        writer.WriteLine($"<p>Exported on {DateTime.Now}</p>");
+                        writer.WriteLine("<table>");
+                        writer.WriteLine("<tr><th>Date</th><th>Time</th><th>Systolic</th><th>Diastolic</th><th>Pulse</th><th>Standing</th></tr>");
+
+                        foreach (var record in recordsToExport)
+                        {
+                            writer.WriteLine("<tr>");
+                            writer.WriteLine($"<td>{record.ReadingDate:MM/dd/yyyy}</td>");
+                            writer.WriteLine($"<td>{record.ReadingTime:hh\\:mm tt}</td>");
+                            writer.WriteLine($"<td>{record.Systolic}</td>");
+                            writer.WriteLine($"<td>{record.Diastolic}</td>");
+                            writer.WriteLine($"<td>{record.Pulse}</td>");
+                            writer.WriteLine($"<td>{(record.Standing ? "Yes" : "No")}</td>");
+                            writer.WriteLine("</tr>");
+                        }
+
+                        writer.WriteLine("</table>");
+                        writer.WriteLine("</body>");
+                        writer.WriteLine("</html>");
+                    }
+
+                    // Update last export date
+                    LastExportDateTime = DateTime.Now;
+                    SaveSettings();
+                }
+            }
+            catch (Exception ex)
+            {
+                // Log error and show message to user
+                Console.WriteLine($"Error exporting to HTML: {ex.Message}");
+            }
+        }
+
+        private void EditReading(object parameter)
+        {
+            if (SelectedReading == null)
+                return;
+
+            // In a real app, you might open a dialog or navigate to another view
+            // For now, we'll just copy the values to the input fields
+            UserName = SelectedReading.Name;
+            Systolic = SelectedReading.Systolic;
+            Diastolic = SelectedReading.Diastolic;
+            Pulse = SelectedReading.Pulse;
+            ReadingDateTime = SelectedReading.ReadingDate;
+            Standing = SelectedReading.Standing;
+            
+            // Remove the original record
+            Readings.Remove(SelectedReading);
+            
+            // Note: In a real app, you would typically use a dialog
+            // and only remove after confirmation of save
+        }
+
+        private void DeleteReading(object parameter)
+        {
+            if (SelectedReading == null)
+                return;
+
+            // In a real app, show confirmation dialog
+            Readings.Remove(SelectedReading);
+            SaveSettings();
+        }
+
+        private void SetLastExported(object parameter)
+        {
+            if (SelectedReading == null)
+                return;
+
+            // Set last export timestamp to the selected reading's date/time
+            LastExportDateTime = SelectedReading.ReadingDate;
+            SaveSettings();
         }
     }
 
@@ -427,37 +640,41 @@ namespace BloodPressureApp // Assuming this is your namespace
             using var connection = new SqliteConnection(_connectionString);
             connection.Open();
 
-            string query = @"SELECT u.Name, u.Birthdate, r.Systolic, r.Diastolic, r.Pulse, r.ReadingTime, r.Position
+            // *** Modified Query: Added r.Id as the first selected column ***
+            string query = @"SELECT r.Id, u.Name, u.Birthdate, r.Systolic, r.Diastolic, r.Pulse, r.ReadingTime, r.Position
                              FROM Readings r
                              JOIN Users u ON r.UserId = u.Id
-                             ORDER BY r.ReadingTime ASC";
+                             ORDER BY r.ReadingTime DESC";
 
             using var cmd = new SqliteCommand(query, connection);
             using var reader = cmd.ExecuteReader();
 
-            var readings = new List<HealthRecord>();
+            // Use the ViewModel's collection directly if possible, or clear and add
+            _viewModel.Readings.Clear(); // Clear existing items
+
             while (reader.Read())
             {
-                var readingDateTime = DateTime.Parse(reader.GetString(5));
+                // Ensure parsing handles potential DBNull or formatting issues if necessary
+                var readingDateTime = DateTime.Parse(reader.GetString(6)); // Index 6 is ReadingTime
+
                 var record = new HealthRecord()
                 {
-                    Name = reader.GetString(0),
-                    BirthDate = DateTime.Parse(reader.GetString(1)),
-                    Systolic = reader.GetInt32(2),
-                    Diastolic = reader.GetInt32(3),
-                    Pulse = reader.GetInt32(4),
-                    ReadingDate = readingDateTime,
-                    // We don't need to explicitly set ReadingTime as it's derived from ReadingDate
-                    Standing = reader.GetString(6) == "Standing"
+                    // *** Added Id assignment: Reads the first column (r.Id) ***
+                    // Use GetInt64 for AUTOINCREMENT (typically maps to long/Int64)
+                    // Cast to int if your HealthRecord.Id is int and you are sure IDs won't exceed int.MaxValue
+                    Id = (int)reader.GetInt64(0), // Index 0 is r.Id
+                    Name = reader.GetString(1),           // Index 1 is u.Name
+                    BirthDate = DateTime.Parse(reader.GetString(2)), // Index 2 is u.Birthdate
+                    Systolic = reader.GetInt32(3),        // Index 3 is r.Systolic
+                    Diastolic = reader.GetInt32(4),       // Index 4 is r.Diastolic
+                    Pulse = reader.GetInt32(5),           // Index 5 is r.Pulse
+                    ReadingDate = readingDateTime,        // Index 6 is r.ReadingTime (already parsed)
+                    Standing = reader.GetString(7) == "Standing" // Index 7 is r.Position
                 };
-                
-                // Debugging - verify ReadingTime is actually populated
-                Console.WriteLine($"Record time: {record.ReadingTime}");
-                
-                readings.Add(record);
+                 _viewModel.Readings.Add(record); // Add directly to the ViewModel's collection
             }
-
-            ReadingsGrid.ItemsSource = readings;
+             // No need to set ReadingsGrid.ItemsSource if it's bound to _viewModel.Readings
+             // ReadingsGrid.ItemsSource = _viewModel.Readings;
         }
 
         private void ExportTextButton_Click(object sender, RoutedEventArgs e)
@@ -541,24 +758,7 @@ namespace BloodPressureApp // Assuming this is your namespace
             MessageBox.Show($"Data exported and path copied to clipboard:\n{fullPath}", 
                 "Export Successful", MessageBoxButton.OK, MessageBoxImage.Information);
         }
-        
-        private void ReadingsGrid_MouseDoubleClick(object sender, MouseButtonEventArgs e)
-        {
-            // Check if a row is selected
-            if (ReadingsGrid.SelectedItem is HealthRecord selectedRecord)
-            {
-                // Populate the fields in the form
-                _viewModel.UserName = selectedRecord.Name;
-                _viewModel.BirthDate = selectedRecord.BirthDate;
-                _viewModel.Systolic = selectedRecord.Systolic;
-                _viewModel.Diastolic = selectedRecord.Diastolic;
-                _viewModel.Pulse = selectedRecord.Pulse;
-                _viewModel.ReadingDate = selectedRecord.ReadingDate.Date;
-                _viewModel.ReadingTime = selectedRecord.ReadingTime;
-                _viewModel.Standing = selectedRecord.Standing;
-            }
-        }
-        
+
         private void SetLastExportedRecord_Click(object sender, RoutedEventArgs e)
         {
             // Check if a row is selected
@@ -586,5 +786,148 @@ namespace BloodPressureApp // Assuming this is your namespace
             _viewModel.ReadingTime = TimeSpan.Parse(DateTime.Now.ToString("HH:mm"));
         }
         
+    // ... existing fields and methods ...
+
+    // --- New Menu Item Event Handlers ---
+
+    private void ExitMenuItem_Click(object sender, RoutedEventArgs e)
+    {
+        this.Close(); // Close the main window
     }
+
+    private void EditReadingMenuItem_Click(object sender, RoutedEventArgs e)
+    {
+        var viewModel = DataContext as MainViewModel;
+        if (viewModel?.SelectedReading != null)
+        {
+            // Reuse the double-click logic to load data into input fields for editing
+            // You might pass null for MouseButtonEventArgs if the handler doesn't strictly need it,
+            // or create a dummy one if required. Let's assume it can handle null or doesn't use 'e'.
+             ReadingsGrid_MouseDoubleClick(ReadingsGrid, null); // Pass null or adjust as needed
+             // Consider focusing the first input field after loading
+             SystolicTextBox.Focus();
+        }
+        else
+        {
+            MessageBox.Show("Please select a reading from the grid to edit.", "No Reading Selected", MessageBoxButton.OK, MessageBoxImage.Information);
+        }
+    }
+
+    
+    private void ReadingsGrid_PreviewKeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.Delete)
+        {
+            // Check if an item is actually selected in the DataGrid
+            if (ReadingsGrid.SelectedItem != null)
+            {
+                // Call the existing menu item click handler to perform the delete action
+                DeleteReadingMenuItem_Click(sender, null); 
+                
+                // Mark the event as handled so it doesn't bubble up further
+                e.Handled = true; 
+            }
+        }
+    }
+
+    // ... rest of the methods ...
+        private void DeleteReadingMenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            if (_viewModel.SelectedReading != null)
+            {
+                var recordToDelete = _viewModel.SelectedReading;
+                // *** Store the index BEFORE deleting ***
+                int deletedIndex = _viewModel.Readings.IndexOf(recordToDelete);
+
+                var result = MessageBox.Show($"Are you sure you want to delete the reading from {recordToDelete.ReadingDate:g}?",
+                                             "Confirm Delete", MessageBoxButton.YesNo, MessageBoxImage.Warning);
+
+                if (result == MessageBoxResult.Yes)
+                {
+                    using (var connection = new SqliteConnection(_connectionString))
+                    {
+                        connection.Open();
+                        string deleteQuery = "DELETE FROM Readings WHERE Id = @id";
+                        using var cmd = new SqliteCommand(deleteQuery, connection);
+                        cmd.Parameters.AddWithValue("@id", recordToDelete.Id);
+
+                        int rowsAffected = cmd.ExecuteNonQuery();
+
+                        if (rowsAffected > 0)
+                        {
+                            // Remove from the UI collection
+                            _viewModel.Readings.Remove(recordToDelete);
+
+                            // *** Select the next item logic ***
+                            if (_viewModel.Readings.Count > 0) // Check if the list is not empty
+                            {
+                                // Determine the index to select
+                                int indexToSelect = Math.Min(deletedIndex, _viewModel.Readings.Count - 1);
+                                // Ensure index is not negative (shouldn't happen with Count > 0 check, but safe)
+                                indexToSelect = Math.Max(0, indexToSelect);
+
+                                _viewModel.SelectedReading = _viewModel.Readings[indexToSelect];
+
+                                // Optional: Scroll the selected item into view
+                                ReadingsGrid.ScrollIntoView(_viewModel.SelectedReading);
+                            }
+                            else
+                            {
+                                // List is empty, clear selection
+                                _viewModel.SelectedReading = null;
+                            }
+
+                            // Don't show this message box if you want the selection change to be the main feedback
+                            // MessageBox.Show("Record deleted successfully.", "Delete Record", MessageBoxButton.OK, MessageBoxImage.Information);
+                        }
+                        else
+                        {
+                            MessageBox.Show("Could not find the record in the database to delete (ID mismatch).", "Delete Failed", MessageBoxButton.OK, MessageBoxImage.Warning);
+                        }
+                    }
+                }
+            }
+            else
+            {
+                 MessageBox.Show("Please select a record to delete.", "Delete Record", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+        }
+
+    private void AboutMenuItem_Click(object sender, RoutedEventArgs e)
+    {
+        // Replace with your actual application name/version/copyright
+        MessageBox.Show("Blood Pressure Log\n\nVersion v1.0\n\nDeveloped by Leland Green\n\nCopyright © 2025",
+                        "About Blood Pressure Log",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Information);
+    }
+
+    // Ensure ReadingsGrid_MouseDoubleClick is suitable for being called by Edit menu
+    // If it relies heavily on MouseButtonEventArgs 'e', you might need to refactor
+    // the core logic into a separate private method called by both handlers.
+    private void ReadingsGrid_MouseDoubleClick(object sender, MouseButtonEventArgs? e) // Allow nullable e
+    {
+        var viewModel = DataContext as MainViewModel;
+        if (viewModel?.SelectedReading != null)
+        {
+            var selectedRecord = viewModel.SelectedReading;
+            viewModel.Systolic = selectedRecord.Systolic;
+            viewModel.Diastolic = selectedRecord.Diastolic;
+            viewModel.Pulse = selectedRecord.Pulse;
+            viewModel.Standing = selectedRecord.Standing;
+
+            // Combine Date and Time for the DateTimePicker/TextBox bindings
+            viewModel.ReadingDate = selectedRecord.ReadingDate.Date;
+            viewModel.ReadingTime = selectedRecord.ReadingDate.TimeOfDay;
+
+            // Maybe scroll the selected item into view if called programmatically
+             if (sender is DataGrid grid && grid.SelectedItem != null)
+             {
+                 grid.ScrollIntoView(grid.SelectedItem);
+             }
+        }
+    }
+
+    // ... SetLastExported_Click, SetCurrentDateTime_Click etc. ...
+}
 }
