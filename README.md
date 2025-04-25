@@ -38,4 +38,10 @@
 *   Application settings are stored in a `settings.json` file.
 
 ### To Do
-- Search and filter readings by date or value(s).
+1. **Data Visualization**: Add charts to visualize blood pressure trends over time
+2. **Filtering/Sorting**: Implement more advanced filtering options for your readings
+3. **Data Export**: Expand export capabilities to include CSV or PDF formats
+4. **Reminder System**: Add a reminder system for taking blood pressure readings
+5. **User Profiles**: Support multiple user profiles if needed for family members
+6. **Statistical Analysis**: Add basic statistical analysis (averages, trends, etc.)
+

@@ -72,7 +72,7 @@ namespace BPLog // Assuming this is your namespace
 
     public class MainViewModel : INotifyPropertyChanged
     {
-        private string _userName = "Default User";
+        private string _userName = "";
         private DateTime? _birthDate;
         private int? _systolic;
         private int? _diastolic;
@@ -317,6 +317,7 @@ namespace BPLog // Assuming this is your namespace
 
             // Save settings
             SaveSettings();
+            App.ReminderServiceInstance?.Start();
         }
 
         private void SetCurrentDateTime(object parameter)
@@ -506,7 +507,8 @@ namespace BPLog // Assuming this is your namespace
             _viewModel = new MainViewModel();
         
             // Load settings from SettingsManager
-            _viewModel.LoadSettings();
+            LoadSettings(_viewModel);
+            // _viewModel.LoadSettings();
             DataContext = _viewModel;
 
             // Handle closing to save settings
@@ -514,6 +516,44 @@ namespace BPLog // Assuming this is your namespace
             
             LoadReadings();
         }
+        private void LoadSettings(MainViewModel viewModel)
+        {
+            try
+            {
+                // Get the settings file path
+                string settingsPath = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+                    "BPLog", "settings.json");
+            
+                if (File.Exists(settingsPath))
+                {
+                    string json = File.ReadAllText(settingsPath);
+            
+                    // Deserialize the settings JSON
+                    var settings = Newtonsoft.Json.JsonConvert.DeserializeObject<MainViewModel>(json);
+            
+                    // Copy the settings to our view model
+                    if (settings != null)
+                    {
+                        viewModel.UserName = settings.UserName;
+                        viewModel.BirthDate = settings.BirthDate;
+                
+                        // Copy other properties as needed
+                        viewModel.Readings = settings.Readings;
+                        viewModel.LastExportDateTime = settings.LastExportDateTime;
+
+                        ReadingsGrid.ItemsSource = viewModel.Readings;
+                        // etc.
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error loading settings: {ex.Message}", "Error", 
+                    MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+        
 
         private string _connectionString;
 
@@ -786,51 +826,61 @@ namespace BPLog // Assuming this is your namespace
             _viewModel.ReadingTime = TimeSpan.Parse(DateTime.Now.ToString("HH:mm"));
         }
         
-    // ... existing fields and methods ...
-
-    // --- New Menu Item Event Handlers ---
-
-    private void ExitMenuItem_Click(object sender, RoutedEventArgs e)
-    {
-        this.Close(); // Close the main window
-    }
-
-    private void EditReadingMenuItem_Click(object sender, RoutedEventArgs e)
-    {
-        var viewModel = DataContext as MainViewModel;
-        if (viewModel?.SelectedReading != null)
+        private void SettingsButton_Click(object sender, RoutedEventArgs e) // Or SettingsMenuItem_Click
         {
-            // Reuse the double-click logic to load data into input fields for editing
-            // You might pass null for MouseButtonEventArgs if the handler doesn't strictly need it,
-            // or create a dummy one if required. Let's assume it can handle null or doesn't use 'e'.
-             ReadingsGrid_MouseDoubleClick(ReadingsGrid, null); // Pass null or adjust as needed
-             // Consider focusing the first input field after loading
-             SystolicTextBox.Focus();
-        }
-        else
-        {
-            MessageBox.Show("Please select a reading from the grid to edit.", "No Reading Selected", MessageBoxButton.OK, MessageBoxImage.Information);
-        }
-    }
-
-    
-    private void ReadingsGrid_PreviewKeyDown(object sender, KeyEventArgs e)
-    {
-        if (e.Key == Key.Delete)
-        {
-            // Check if an item is actually selected in the DataGrid
-            if (ReadingsGrid.SelectedItem != null)
+            var settingsWindow = new SettingsWindow
             {
-                // Call the existing menu item click handler to perform the delete action
-                DeleteReadingMenuItem_Click(sender, null); 
-                
-                // Mark the event as handled so it doesn't bubble up further
-                e.Handled = true; 
+                Owner = this // Set the owner for proper modal behavior
+            };
+            settingsWindow.ShowDialog(); // Show as a modal dialog
+
+            // Optional: You could check settingsWindow.DialogResult here if needed
+            // bool? result = settingsWindow.DialogResult;
+            // if (result == true) { /* Settings were saved */ }
+        }
+        
+        // --- New Menu Item Event Handlers ---
+        private void ExitMenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            this.Close(); // Close the main window
+        }
+
+        private void EditReadingMenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            var viewModel = DataContext as MainViewModel;
+            if (viewModel?.SelectedReading != null)
+            {
+                // Reuse the double-click logic to load data into input fields for editing
+                // You might pass null for MouseButtonEventArgs if the handler doesn't strictly need it,
+                // or create a dummy one if required. Let's assume it can handle null or doesn't use 'e'.
+                 ReadingsGrid_MouseDoubleClick(ReadingsGrid, null); // Pass null or adjust as needed
+                 // Consider focusing the first input field after loading
+                 SystolicTextBox.Focus();
+            }
+            else
+            {
+                MessageBox.Show("Please select a reading from the grid to edit.", "No Reading Selected", MessageBoxButton.OK, MessageBoxImage.Information);
             }
         }
-    }
 
-    // ... rest of the methods ...
+        
+        private void ReadingsGrid_PreviewKeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Delete)
+            {
+                // Check if an item is actually selected in the DataGrid
+                if (ReadingsGrid.SelectedItem != null)
+                {
+                    // Call the existing menu item click handler to perform the delete action
+                    DeleteReadingMenuItem_Click(sender, null); 
+                    
+                    // Mark the event as handled so it doesn't bubble up further
+                    e.Handled = true; 
+                }
+            }
+        }
+
+        // ... rest of the methods ...
         private void DeleteReadingMenuItem_Click(object sender, RoutedEventArgs e)
         {
             if (_viewModel.SelectedReading != null)

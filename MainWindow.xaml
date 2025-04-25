@@ -3,9 +3,6 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:bpLog="clr-namespace:BPLog"
         Title="Blood Pressure App" Height="800" Width="600">
-    <Window.DataContext>
-        <bpLog:MainViewModel />
-    </Window.DataContext>
     <Grid>
         <!-- Define Rows for Layout -->
         <Grid.RowDefinitions>
@@ -49,8 +46,12 @@
         <!-- User Info Section -->
         <StackPanel Orientation="Horizontal" Margin="10,0,10,10" Grid.Row="1"> <!-- Adjusted Top Margin -->
             <Label Content="_Name:" Target="{Binding ElementName=UserNameInput}" VerticalAlignment="Center"/>
-            <TextBox Name="UserNameInput" Width="150" Text="{Binding UserName, UpdateSourceTrigger=PropertyChanged}" VerticalAlignment="Center" Margin="5"
-                     bpLog:TextBoxBehaviors.SelectAllOnFocus="True" />
+            <TextBox Name="UserNameInput"
+         Width="150"
+         Text="{Binding UserName, UpdateSourceTrigger=PropertyChanged, Mode=TwoWay}"
+         VerticalAlignment="Center"
+         Margin="5"
+         bpLog:TextBoxBehaviors.SelectAllOnFocus="True" />
             <Label Content="_Birthdate:" Target="{Binding ElementName=BirthDatePicker}" VerticalAlignment="Center" Margin="5"/>
             <DatePicker Name="BirthDatePicker" Width="120" SelectedDate="{Binding BirthDate, UpdateSourceTrigger=PropertyChanged}"/>
         </StackPanel>
@@ -80,6 +81,18 @@
                 <Button Content="_Now" Width="60" Margin="5" Click="SetCurrentDateTime_Click"/>
             </StackPanel>
             <Button Content="_Add Record" Width="150" Height="30" Margin="5" Click="AddRecordButton_Click"/>
+            <!-- Example: Adding a Button in MainWindow.xaml -->
+            <Button Content="Settings" Width="100" Click="SettingsButton_Click" Margin="5" HorizontalAlignment="Right"/>
+
+            <!-- Or Example: Adding a MenuItem in MainWindow.xaml -->
+            <!-- <Menu> -->
+            <!--    <MenuItem Header="_File"> -->
+            <!--        <MenuItem Header="_Settings" Click="SettingsMenuItem_Click"/> -->
+            <!--        <Separator /> -->
+            <!--        <MenuItem Header="_Exit" Click="ExitMenuItem_Click"/> -->
+            <!--    </MenuItem> -->
+            <!-- </Menu> -->
+
         </StackPanel>
       
         <!-- Data Grid -->

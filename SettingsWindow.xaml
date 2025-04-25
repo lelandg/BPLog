@@ -1,0 +1,67 @@
+<Window x:Class="BPLog.SettingsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d"
+        Title="Reminder Settings" Height="400" Width="350"
+        WindowStartupLocation="CenterOwner"
+        Loaded="Window_Loaded"
+        ResizeMode="NoResize">
+    <Grid Margin="15">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Enable/Disable Checkbox -->
+        <CheckBox x:Name="EnableRemindersCheckBox" Grid.Row="0" Margin="0,0,0,10"
+                  Content="Enable Blood Pressure Reminders"/>
+
+        <!-- Initial Interval -->
+        <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,15">
+            <Label Content="Remind every (minutes, until first reading):" VerticalAlignment="Center"/>
+            <TextBox x:Name="InitialIntervalTextBox" Width="50" VerticalAlignment="Center"/>
+        </StackPanel>
+
+        <!-- Reminder Times List -->
+        <GroupBox Header="Scheduled Reminder Times (HH:mm)" Grid.Row="2" Margin="0,0,0,10">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <ListBox x:Name="ReminderTimesListBox" Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2" Margin="0,0,0,5"
+                         SelectionMode="Single"
+                         SelectionChanged="ReminderTimesListBox_SelectionChanged"/>
+
+                <TextBox x:Name="NewTimeTextBox" Grid.Row="1" Grid.Column="0" Margin="0,0,5,0"
+                         VerticalAlignment="Center"
+                         ToolTip="Enter time in 24-hour HH:mm format (e.g., 07:00 or 15:30)"/>
+                <StackPanel Grid.Row="1" Grid.Column="1" Orientation="Horizontal">
+                    <Button x:Name="AddButton" Content="Add" Width="60" Margin="0,0,5,0" Click="AddButton_Click"/>
+                    <Button x:Name="RemoveButton" Content="Remove" Width="60" Click="RemoveButton_Click"/>
+                </StackPanel>
+            </Grid>
+        </GroupBox>
+
+        <!-- Status Label (Optional) -->
+        <TextBlock x:Name="StatusTextBlock" Grid.Row="3" Margin="0,5,0,10" Foreground="Gray" TextWrapping="Wrap"
+                   Text="Note: Reminders use the system clock. Changes require saving."/>
+
+        <!-- Save/Cancel Buttons -->
+        <StackPanel Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Right">
+            <Button x:Name="SaveButton" Content="Save" Width="80" Margin="0,0,10,0" IsDefault="True"
+                    Click="SaveButton_Click"/>
+            <Button x:Name="CancelButton" Content="Cancel" Width="80" IsCancel="True" Click="CancelButton_Click"/>
+        </StackPanel>
+    </Grid>
+</Window>
